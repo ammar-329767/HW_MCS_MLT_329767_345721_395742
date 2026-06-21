@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>التعرف على الأرقام المكتوبة بخط اليد</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>تطبيق التعرف على الأرقام</h1>
+      <p>قم برسم رقم (0-9) في المربع أدناه باستخدام الماوس</p>
+
+      <div class="canvas-container">
+        <canvas id="drawingCanvas" width="280" height="280"></canvas>
+      </div>
+
+      <div class="buttons">
+        <button id="predictBtn" class="btn predict-btn">تنبأ بالرقم</button>
+        <button id="clearBtn" class="btn clear-btn">مسح</button>
+      </div>
+
+      <div id="result" class="result">
+        <h2>الرقم المتوقع: <span id="digit">-</span></h2>
+        <p>نسبة الثقة: <span id="confidence">0%</span></p>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("drawingCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // إعداد خلفية اللوحة
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 25;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      let drawing = false;
+
+      // وظائف الرسم بالماوس
+      canvas.addEventListener("mousedown", (e) => {
+        drawing = true;
+        ctx.beginPath();
+        const rect = canvas.getBoundingClientRect();
+        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+      });
+
+      canvas.addEventListener("mousemove", (e) => {
+        if (!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+      });
+
+      canvas.addEventListener("mouseup", () => (drawing = false));
+      canvas.addEventListener("mouseout", () => (drawing = false));
+
+      // دعم اللمس للهواتف
+      canvas.addEventListener("touchstart", (e) => {
+        drawing = true;
+        ctx.beginPath();
+        const rect = canvas.getBoundingClientRect();
+        ctx.moveTo(
+          e.touches[0].clientX - rect.left,
+          e.touches[0].clientY - rect.top,
+        );
+        e.preventDefault();
+      });
+
+      canvas.addEventListener("touchmove", (e) => {
+        if (!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineTo(
+          e.touches[0].clientX - rect.left,
+          e.touches[0].clientY - rect.top,
+        );
+        ctx.stroke();
+        e.preventDefault();
+      });
+
+      canvas.addEventListener("touchend", () => (drawing = false));
+
+      // زر المسح
+      document.getElementById("clearBtn").addEventListener("click", () => {
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        document.getElementById("digit").innerText = "-";
+        document.getElementById("confidence").innerText = "0%";
+      });
+
+      // زر التنبؤ
+      document.getElementById("predictBtn").addEventListener("click", () => {
+        // تحويل الرسم إلى صورة Base64
+        const dataURL = canvas.toDataURL("image/png");
+
+        // إرسال الصورة إلى الخادم (Flask)
+        fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: dataURL }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.error) {
+              alert("حدث خطأ: " + data.error);
+            } else {
+              document.getElementById("digit").innerText = data.digit;
+              document.getElementById("confidence").innerText =
+                data.confidence + "%";
+            }
+          })
+          .catch((error) => console.error("Error:", error));
+      });
+    </script>
+  </body>
+</html>
