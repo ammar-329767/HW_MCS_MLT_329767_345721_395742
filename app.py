@@ -9,7 +9,7 @@ import scipy.ndimage as ndimage  # مكتبة التوسيط الدقيق
 app = Flask(__name__)
 
 try:
-    model = load_model('model.h5')
+    model = load_model('mnist_model.keras')
     print("Model loaded successfully!")
 except Exception as e:
     print(f"Error loading model: {e}")
