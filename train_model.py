@@ -43,5 +43,5 @@ def train_and_save_model():
     model.save('model.h5')
     print("Model saved as 'model.h5'")
 
-if name == 'main':
+if __name__ == '__main__':
     train_and_save_model()
